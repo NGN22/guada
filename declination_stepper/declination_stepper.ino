@@ -4,40 +4,42 @@
 #include <EEPROM.h>
 #include <Stepper.h>
 
-#define DS3231_I2C_ADDRESS 0x68
-
 const int STEPS_PER_REV = 32;
 const int GEAR_REDUCTION = 64;
 
 const int STEPS_PER_OUTER_REV = STEPS_PER_REV * GEAR_REDUCTION;
 int search_speed = 200;
+long ascencion_ms;
+int total_steps_motorDec;
+int total_steps_motorRA;
+unsigned long position;
 struct ts t;
 
-Stepper stepmotor(STEPS_PER_REV, 8, 10, 9, 11);
-Stepper stepmotor2(STEPS_PER_REV,4,6,5,7);
+Stepper motorDec(STEPS_PER_REV, 8, 10, 9, 11);
+Stepper motorRA(STEPS_PER_REV,4,6,5,7);
 
 void setup() {
   Serial.begin(9600);
   Wire.begin();
   DS3231_init(DS3231_INTCN);
-  Initializacion();
-
  
 
-  stepmotor.setSpeed(search_speed);
-  stepmotor2.setSpeed(search_speed);
-  Initmotor1();
-  Initmotor2();
+  motorDec.setSpeed(search_speed);
+  motorRA.setSpeed(search_speed);
+  Init_motorDec();
+  Init_motorRA();
   apuntar_estrella();
-  
+  position=ascencion_ms;
 }
 
 void loop() {
-  //readTime();
-  //stepmotor1();
- //motor2();
- //hora_sid_ms();
-
+ //readTime();
+ //mov_motorDec();
+ //mov_motorRA();
+ hora_sid_ms();
+ tracking();
+ Write_EEPROM(total_steps_motorDec,0);
+ Write_EEPROM(total_steps_motorRA,2);
 }
 void readTime()
 {
@@ -59,18 +61,18 @@ void readTime()
   
 }
 void Initializacion(){
-t.hour=19;
-t.min=9;
+t.hour=16;
+t.min=21;
 t.sec=0;
-t.mday=03;
+t.mday=8;
 t.mon=05;
 t.year=2019;
 DS3231_set(t);
 Serial.println("init finished");
 }
-void stepmotor1()
+void mov_motorDec()
 {
-  Serial.println("number of steps 1: ");
+  Serial.println("number of degres 1: ");
   while(Serial.available()<=0){}
       
      long angle = Serial.readString().toInt();
@@ -78,20 +80,17 @@ void stepmotor1()
     
      Serial.print("steps1:");
      Serial.println(steps);
-     stepmotor.step(steps);
-     long sum_steps=sum_steps+steps;
-     if(sum_steps<0)
+     motorDec.step(steps);
+     total_steps_motorDec=total_steps_motorDec+steps;
+     if(total_steps_motorDec<0)
      {
-      sum_steps=2048+sum_steps;
+      total_steps_motorDec=2048+total_steps_motorDec;
      }
      
-    EEPROM.write(1,sum_steps/8);
-    Serial.print("memoire:");
-    Serial.println(EEPROM.read(1));
   
 }
-void motor2(){
- Serial.println("number of steps 2: ");
+void mov_motorRA(){
+ Serial.println("number of degres 2: ");
   while(Serial.available()<=0){}
       
      long angle2 = Serial.readString().toInt();
@@ -99,40 +98,44 @@ void motor2(){
     
      Serial.print("steps2:");
      Serial.println(steps2);
-     stepmotor2.step(steps2);
-     long sum_steps2=sum_steps2+steps2;
-     if(sum_steps2<0)
+     motorRA.step(steps2);
+     total_steps_motorRA=total_steps_motorRA+steps2;
+     if(total_steps_motorRA<0)
      {
-      sum_steps2=2048+sum_steps2;
+      total_steps_motorRA=2048+total_steps_motorRA;
      }
      
-    EEPROM.write(2,sum_steps2/8);
+    Write_EEPROM(total_steps_motorRA,2);
     Serial.print("memoire:");
-    Serial.println(EEPROM.read(2));
+    Serial.println(Read_EEPROM(2));
 
 }
-void Initmotor1()
+void Init_motorDec()
 {
-  int test_steps=EEPROM.read(1)*8;
-  
+  int init_steps_motorDec=Read_EEPROM(0);
+  if(init_steps_motorDec>2048){
+    init_steps_motorDec=init_steps_motorDec-2048;
+  }
   Serial.print("Init_steps: ");
-  Serial.println(test_steps);
-  if(test_steps!=0)
+  Serial.println(init_steps_motorDec);
+  if(init_steps_motorDec!=0)
   {
-    stepmotor.step(-test_steps);
+    motorDec.step(-init_steps_motorDec);
   }
-  EEPROM.write(1,0);
+  Write_EEPROM(0,0);
 }
-void Initmotor2(){
-    int test_steps2=EEPROM.read(2)*8;
-  
-  Serial.print("Init_steps2: ");
-  Serial.println(test_steps2);
-  if(test_steps2!=0)
-  {
-    stepmotor2.step(-test_steps2);
+void Init_motorRA(){
+  int init_steps_motorRA =Read_EEPROM(2);
+  if(init_steps_motorRA>2048){
+    init_steps_motorRA=init_steps_motorRA-2048;
   }
-  EEPROM.write(2,0);
+  Serial.print("Init_steps2: ");
+  Serial.println(init_steps_motorRA);
+  if(init_steps_motorRA!=0)
+  {
+    motorRA.step(-init_steps_motorRA);
+  }
+  Write_EEPROM(0,2);
 }
 void apuntar_estrella(){
   Serial.println("Ascencion");
@@ -152,13 +155,18 @@ void apuntar_estrella(){
   unsigned long minutos_ms=minutos*60000;
   unsigned long segundos_ms=segundos*1000;
   Serial.print("ascencion_ms");
-  long ascencion_ms =horas_ms+minutos_ms+segundos_ms;
+  ascencion_ms =horas_ms+minutos_ms+segundos_ms;
   Serial.println(ascencion_ms);
   unsigned long mov_steps = ascencion_ms/42072;
   Serial.print("mov_steps :");
   Serial.println(mov_steps);
-  stepmotor2.step(mov_steps);
-  EEPROM.write(2,mov_steps/8);
+  motorRA.step(mov_steps);
+  float mem_step2=mov_steps/8;
+  EEPROM.write(2,mem_step2);
+  Serial.print("memoire:");
+  Serial.println(EEPROM.read(2));
+  total_steps_motorRA=total_steps_motorRA+mov_steps;
+  
 
   Serial.println("Declinacion: ");
   Serial.print("Grados: ");
@@ -181,37 +189,58 @@ void apuntar_estrella(){
   int grados_step= grados/0.17578125;
   Serial.print("step: ");
   Serial.print(grados_step);
-  stepmotor.step(grados_step);
-  EEPROM.write(1,grados_step/8);
-  
-  
-  
-  
-  
-
-  
-
-  
-  
-  
+  motorDec.step(grados_step);
+  float mem_step=grados_step/8;
+  EEPROM.write(1,mem_step);
+  Serial.print("memoire:");
+  Serial.println(EEPROM.read(1));
+  total_steps_motorDec=total_steps_motorDec+grados_step;
   
 }
-
-void calculo(){
-  
-  
- 
-  
-  
-}
-
-void hora_sid_ms(){
+unsigned long hora_sid_ms(){
+  DS3231_get(&t);
   unsigned long horas_ms=t.hour*3600000;
-  Serial.println(horas_ms);
   unsigned long minutos_ms=t.min*60000;
   unsigned long segundos_ms=t.sec*1000;
   unsigned long hora_ms =horas_ms+minutos_ms+segundos_ms;
-  Serial.print("hora_sideral_ms");
+  //Serial.print("hora_sideral_ms");
   unsigned long hora_sideral_ms=hora_ms*0.9972695833;
-  Serial.println(hora_sideral_ms);
+  return (unsigned long) hora_sideral_ms;
 }
+
+void tracking (){
+  unsigned long time=hora_sid_ms();
+  if(time-position>42072)
+  {
+    motorRA.step(1);
+    position=position+42072;
+    total_steps_motorRA=total_steps_motorRA+1;
+  }
+  if(position>=time){
+    position=time;
+    delay(1000);
+    Serial.println(position);
+    Serial.println(time);
+  }
+  
+  
+  }
+
+  void Write_EEPROM(int var,int address)
+ {
+  int var1=var>>8;
+  EEPROM.write(address,var1);
+
+  EEPROM.write(address+1,var);
+
+ }
+ int Read_EEPROM(int address)
+ {
+  int var1=EEPROM.read(address);
+  int var2=EEPROM.read(address+1);
+  var1=var1<<8;
+  int var=var1+var2;
+  return (int) var;
+  Serial.print(var1);
+  Serial.print(var2);
+ }
