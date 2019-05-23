@@ -9,14 +9,14 @@ float GEAR_REDUCTION = 64.0;
 const long solar_ms_per_sideral_day = 86164092;
 
 const int STEPS_PER_OUTER_REV = STEPS_PER_REV * GEAR_REDUCTION;
-int search_speed = 200;
+int search_speed = 2 ;
 int total_steps_motorDec;
 int total_steps_motorRA;
 int var = 0;
 struct ts t;
 
-Stepper motorDec(STEPS_PER_REV, 8, 10, 9, 11);
-Stepper motorRA(STEPS_PER_REV, 4, 6, 5, 7);
+Stepper motorDec(STEPS_PER_OUTER_REV, 8, 10, 9, 11);
+Stepper motorRA(STEPS_PER_OUTER_REV, 4, 6, 5, 7);
 
 void setup() {
   Serial.begin(9600);
@@ -167,7 +167,7 @@ void mov_motorDec(long steps) {
 
 void mov_motorRA(long steps) {
   move_motor(motorRA, steps);
-  total_steps_motorRA = total_steps_motorRA + steps;
+  total_steps_motorRA = total_steps_motorRA + steps;  
 }
 
 
@@ -179,7 +179,7 @@ void move_to_origin_motorDec() {
 }
 
 void move_to_origin_motorRA() {
-  Serial.print("Moving motorDec to origin: ");
+  Serial.print("Moving motorRA to origin: ");
   Serial.println(-total_steps_motorRA);
   move_motor(motorRA, -total_steps_motorRA);
   total_steps_motorRA = 0;
