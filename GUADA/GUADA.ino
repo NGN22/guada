@@ -205,9 +205,10 @@ long parse_ascension(String ascension) {
 }
 
 float parse_declination(String declination) {
-  float degrees_dec = declination.substring(0, 3).toFloat();
-  float minutes_dec = declination.substring(4, 6).toFloat() / 60;
-  float seconds_dec = declination.substring(7, 9).toFloat() / 3600;
+
+  float degrees_dec = 90 - (declination.substring(0, 2).toFloat());
+  float minutes_dec = declination.substring(3, 5).toFloat() / 60;
+  float seconds_dec = declination.substring(6, 8).toFloat() / 3600;
   Serial.print("degrees:");
   Serial.println(degrees_dec);
   Serial.print("minutes:");
@@ -228,7 +229,7 @@ float process_ascension_inputs() {
 }
 
 unsigned long process_declination_inputs() {
-  Serial.println("Load the Declination data in format ddd,mm,ss");
+  Serial.println("Load the Declination data in format dd,mm,ss");
   assure_serial_avail();
   String declination = Serial.readString();
   return parse_declination(declination);
