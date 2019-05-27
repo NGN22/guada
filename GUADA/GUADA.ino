@@ -15,7 +15,7 @@ int total_steps_motorRA;
 int var = 0;
 struct ts t;
 
-Stepper motorDec(STEPS_PER_OUTER_REV, 8, 10, 9, 11);
+Stepper motorDec(STEPS_PER_OUTER_REV, 9, 11, 8, 10);
 Stepper motorRA(STEPS_PER_OUTER_REV, 4, 6, 5, 7);
 
 void setup() {
@@ -205,9 +205,9 @@ long parse_ascension(String ascension) {
 }
 
 float parse_declination(String declination) {
-  float degrees_dec = declination.substring(0, 3).toFloat();
-  float minutes_dec = declination.substring(4, 6).toFloat() / 60;
-  float seconds_dec = declination.substring(7, 9).toFloat() / 3600;
+  float degrees_dec = 90 - declination.substring(0, 2).toFloat();
+  float minutes_dec = declination.substring(3, 5).toFloat() / 60;
+  float seconds_dec = declination.substring(6, 8).toFloat() / 3600;
   Serial.print("degrees:");
   Serial.println(degrees_dec);
   Serial.print("minutes:");
@@ -228,7 +228,7 @@ float process_ascension_inputs() {
 }
 
 unsigned long process_declination_inputs() {
-  Serial.println("Load the Declination data in format ddd,mm,ss");
+  Serial.println("Load the Declination data in format dd,mm,ss");
   assure_serial_avail();
   String declination = Serial.readString();
   return parse_declination(declination);
@@ -264,7 +264,7 @@ unsigned long get_steps_to_point_star() {
   Serial.println(steps);
   return steps;
 }
-
+//esto es inútil si usamos directamente las coordenadas actuales de la estrella y no las coordenadas 0 0
 void point_the_star() {
   unsigned long steps_to_point = get_steps_to_point_star();
   Serial.print("Number of steps to point the star: ");
