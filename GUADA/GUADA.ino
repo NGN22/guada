@@ -1,6 +1,6 @@
 #include <EEPROM.h>
 #include <config.h>
-#include <ds3231.h>
+#include <ds3231.h> 
 #include <Wire.h>
 #include <Stepper.h>
 
@@ -9,7 +9,7 @@ float GEAR_REDUCTION = 64.0;
 const long solar_ms_per_sideral_day = 86164092;
 
 const int STEPS_PER_OUTER_REV = STEPS_PER_REV * GEAR_REDUCTION;
-int search_speed = 2 ;
+int search_speed = 3;
 int total_steps_motorDec;
 int total_steps_motorRA;
 int var = 0;
@@ -54,6 +54,7 @@ void loop() {
       break;
     case 5:
       tracking();
+      
       break;
     case 6:
       Select_Time();
@@ -248,12 +249,14 @@ void point() {
 
 unsigned long get_sideral_time_in_ms() {
   DS3231_get(&t);
+  unsigned long hora_sideral_ms=0;
   unsigned long hours_ms = t.hour * 3600000;
   unsigned long minutes_ms = t.min * 60000;
-  unsigned long seconds_ms = t.sec * 1000;
+  unsigned long seconds_ms = t.sec;
+  seconds_ms = seconds_ms*1000;
+  hora_sideral_ms = (hours_ms + minutes_ms + seconds_ms) % solar_ms_per_sideral_day;
   Serial.print("Actual sideral time by RTC: ");
-  Serial.println((hours_ms + minutes_ms + seconds_ms) % solar_ms_per_sideral_day);
-  unsigned long hora_sideral_ms = (hours_ms + minutes_ms + seconds_ms) % solar_ms_per_sideral_day;
+  Serial.println(hora_sideral_ms);
   return hora_sideral_ms;
 }
 
@@ -264,7 +267,7 @@ unsigned long get_steps_to_point_star() {
   Serial.println(steps);
   return steps;
 }
-//esto es inútil si usamos directamente las coordenadas actuales de la estrella y no las coordenadas 0 0
+//esto es inútil si usamos directamente las coordenadas actuales de la estrella y no las coordenadas 0 0 
 void point_the_star() {
   unsigned long steps_to_point = get_steps_to_point_star();
   Serial.print("Number of steps to point the star: ");
@@ -276,12 +279,14 @@ void tracking () {
 
   Serial.println("Press any key to stop tracking");
   unsigned long sideral_time_when_to_make_step = get_sideral_time_in_ms() + ms_to_make_a_step();
+  Serial.println("tracking...");
   do {
-    while ( (long ) (get_sideral_time_in_ms() < sideral_time_when_to_make_step)) {
+    while (get_sideral_time_in_ms() < sideral_time_when_to_make_step) {
       delay(1);
     }
     sideral_time_when_to_make_step = sideral_time_when_to_make_step + ms_to_make_a_step();
     mov_motorRA(1);
-    Serial.println("Step done: ");
-  } while (Serial.available() > 0);
+    Serial.println("Step done ");
+  } while (Serial.available() <= 0);
+  var=0;
 }
