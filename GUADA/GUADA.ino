@@ -3,6 +3,7 @@
 #include <ds3231.h> 
 #include <Wire.h>
 #include <Stepper.h>
+#include <QMC5883L.h>
 
 float STEPS_PER_REV = 32.0;
 float GEAR_REDUCTION = 64.0;
@@ -18,12 +19,17 @@ struct ts t;
 Stepper motorDec(STEPS_PER_OUTER_REV, 9, 11, 8, 10);
 Stepper motorRA(STEPS_PER_OUTER_REV, 4, 6, 5, 7);
 
+QMC5883L compass;
+int minX,minY,maxX,maxY,offX,offY;
+
 void setup() {
   Serial.begin(9600);
   Wire.begin();
-  DS3231_init(DS3231_INTCN);
+  //DS3231_init(DS3231_INTCN);
   motorDec.setSpeed(search_speed);
   motorRA.setSpeed(search_speed);
+  compass.init();
+  compass.setMode(Mode_Continuous,ODR_200Hz,RNG_2G,OSR_256);
 }
 
 
@@ -53,8 +59,7 @@ void loop() {
       var = 0;
       break;
     case 5:
-      tracking();
-      
+      tracking();      
       break;
     case 6:
       Select_Time();
@@ -70,6 +75,16 @@ void loop() {
       var = 0;
       break;
     case 9:
+  while (Serial.available() <= 0) {
+    calibrate();
+    }
+      var=0;
+      break;
+    case 10:
+      Point_South();
+      var=0;
+      break;
+    case 11:
       total_steps_motorRA = 0;
       total_steps_motorDec = 0;
       var = 0;
@@ -94,7 +109,9 @@ int print_menu() {
   Serial.println("6. Init Time");
   Serial.println("7. Time");
   Serial.println("8. Init Motor");
-  Serial.println("9. Reset Position");
+  Serial.println("9. Calibrate");
+  Serial.println("10. Point a Direction");
+  Serial.println("11. Reset Position");
   assure_serial_avail();
   return Serial.readString().toInt();
 }
@@ -120,21 +137,27 @@ void Select_Time() {
   Serial.print("Hour:");
   assure_serial_avail();
   int hour = Serial.readString().toInt();
+  Serial.println(hour);
   Serial.print("Min:");
   assure_serial_avail();
   int min = Serial.readString().toInt();
+  Serial.println(min);
   Serial.print("sec:");
   assure_serial_avail();
   int sec = Serial.readString().toInt();
+  Serial.println(sec);
   Serial.print("mDay:");
   assure_serial_avail();
   int mday = Serial.readString().toInt();
+  Serial.println(mday);
   Serial.print("Month:");
   assure_serial_avail();
   int month = Serial.readString().toInt();
+  Serial.println(month);
   Serial.print("Year:");
   assure_serial_avail();
   int year = Serial.readString().toInt();
+  Serial.println(year);
   t.hour = hour;
   t.min = min;
   t.sec = sec;
@@ -289,4 +312,83 @@ void tracking () {
     Serial.println("Step done ");
   } while (Serial.available() <= 0);
   var=0;
+}
+void calibrate(){
+  
+  int x,y,z;
+  compass.read(&x,&y,&z);
+
+  // Determine Min / Max values
+  if (x < minX) minX = x;
+  if (x > maxX) maxX = x;
+  if (y < minY) minY = y;
+  if (y > maxY) maxY = y;
+
+  // Calculate offsets
+  offX = (maxX + minX)/2;
+  offY = (maxY + minY)/2;
+
+  Serial.print(x);
+  Serial.print(":");
+  Serial.print(y);
+  Serial.print(":");
+  Serial.print(minX);
+  Serial.print(":");
+  Serial.print(maxX);
+  Serial.print(":");
+  Serial.print(minY);
+  Serial.print(":");
+  Serial.print(maxY);
+  Serial.print(":");
+  Serial.print(offX);
+  Serial.print(":");
+  Serial.print(offY);
+  Serial.print("\n");
+}
+int Select_Direction()
+{
+  Serial.print("Choose the direction in which you want to Point(from 0 to 360°)");
+  assure_serial_avail();
+  int Point = Serial.readString().toInt();
+  return Point;
+}
+
+void Point_South()
+{
+  int x,y,z;
+  float headingDegrees=0;
+  int Point=Select_Direction();
+      while(headingDegrees<Point-1 || headingDegrees>Point+1)
+    {
+  compass.read(&x,&y,&z);
+  x=x-offX;
+  y=y-offY;
+
+ // Calculate heading when the magnetometer is level, then correct for signs of axis.
+  // Atan2() automatically check the correct formula taking care of the quadrant you are in
+  float heading = atan2(y, x);
+
+    float declinationAngle = -8.51;
+  heading += declinationAngle;
+  // Find yours here: http://www.magnetic-declination.com/
+
+   // Correct for when signs are reversed.
+  while(heading < 0)
+  {
+    heading += 2*PI;
+  }
+
+  // Check for wrap due to addition of declination.
+  while(heading > 2*PI)
+    {
+     heading -= 2*PI;
+    }
+
+  // Convert radians to degrees for readability.
+   headingDegrees= heading * 180/M_PI; 
+  Serial.print("degrees");
+  Serial.println(headingDegrees);
+
+      motorRA.step(1);
+    }
 }
