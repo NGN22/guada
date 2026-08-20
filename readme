@@ -1,0 +1,67 @@
+Proyecto: Control de Motores Paso a Paso con DS3231
+📌 Descripción
+Este proyecto implementa un sistema de control de dos motores paso a paso utilizando un Arduino, un reloj de tiempo real DS3231, y almacenamiento en EEPROM para mantener la posición de los motores entre reinicios.
+El objetivo principal es simular un sistema de apuntado astronómico, permitiendo mover los motores según coordenadas de ascensión recta y declinación.
+
+⚙️ Hardware utilizado
+Arduino UNO (o compatible)
+
+Reloj de tiempo real DS3231 (I2C)
+
+Dos motores paso a paso 28BYJ-48 con driver ULN2003
+
+Conexión I2C (SDA, SCL)
+
+EEPROM interna del Arduino
+
+📂 Librerías necesarias
+Asegúrate de instalar las siguientes librerías en el IDE de Arduino:
+
+Wire.h (comunicación I2C)
+
+ds3231.h (manejo del RTC)
+
+EEPROM.h (lectura/escritura en memoria EEPROM)
+
+Stepper.h (control básico de motores paso a paso)
+
+🚀 Funcionalidades principales
+Inicialización del RTC con fecha y hora predefinida.
+
+Lectura de tiempo actual desde el DS3231.
+
+Control de motores paso a paso para simular movimientos de ascensión recta y declinación.
+
+Persistencia de posición en EEPROM para evitar pérdida de referencia tras reinicios.
+
+Cálculo simplificado de hora sideral para sincronización astronómica.
+
+📜 Estructura del código
+setup(): Inicializa comunicación serial, RTC y motores.
+
+loop(): Ciclo principal (actualmente vacío, se puede expandir).
+
+readTime(): Muestra fecha y hora desde el RTC.
+
+Initializacion(): Configura hora inicial en el DS3231.
+
+stepmotor1() y motor2(): Control manual de cada motor.
+
+Initmotor1() y Initmotor2(): Restablecen posición desde EEPROM.
+
+apuntar_estrella(): Calcula y mueve motores según coordenadas astronómicas.
+
+hora_sid_ms(): Calcula hora sideral aproximada.
+
+🛠️ Uso
+Conecta el hardware según el esquema.
+
+Carga el código en el Arduino.
+
+Abre el Monitor Serial a 9600 baudios.
+
+Ingresa valores de ángulos o coordenadas cuando el programa lo solicite.
+
+Observa el movimiento de los motores y la salida en consola.
+
+
