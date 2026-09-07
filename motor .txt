@@ -1,0 +1,33 @@
+El motor paso a paso 28BYJ-48
+https://programarfacil.com/blog/motor-paso-a-paso/
+
+se va intentar dar 512 impulsos en los segundos requeridos
+o el tiempo requerido
+
+/*Cada paso avanza 5,625º*/
+Caja reductora mediante engranajes 1/64
+Se consigue un paso de 5,625/64 = 0,088º
+
+
+Frecuencia máxima 100Hz que equivale a un delay de 10 ms
+
+Sé que parece confuso. Hay 4 bobinas, si las excitamos de una en
+una tenemos 4 pasos x 64=256 pasos por vuelta. Pero también podemos excitar 
+la bobina mediante medios pasos, como veíamos en las tablas de la sesión previa (que es el ejemplo que vamos a hacer)
+ y por eso a medios pasos una vuelta son 8 * 64 = 512 impulsos
+ Es un motorcito unipolar con las siguientes características:
+ 
+
+    Tensión nominal de entre 5V y 12 V.
+    4 Fases.
+    Resistencia 50 Ω.
+    Par motor de 34 Newton / metro más o menos 0,34 Kg por cm.
+    Consumo de unos 55 mA.
+    8 pasos por vuelta.
+    Reductora de 1 / 64.
+
+ 
+
+Traduciendo esto a cristiano, quiere decir que como es de 4 pasos (Steps),
+ u 8 medios pasos  (O half Steps) por vuelta y usa una reductora de 1 /64, 
+ por lo que necesitamos dar 8 * 64 = 512 impulsos para completar un giro completo a medios pasos.
